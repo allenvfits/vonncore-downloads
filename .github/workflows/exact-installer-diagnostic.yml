@@ -1,0 +1,38 @@
+name: Exact signed installer diagnostic
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - codex/exact-installer-d7b1937-diagnostic
+    paths:
+      - .github/workflows/exact-installer-diagnostic.yml
+      - diagnostics/test-exact-installer.ps1
+
+permissions:
+  contents: read
+
+concurrency:
+  group: exact-signed-installer-diagnostic
+  cancel-in-progress: false
+
+jobs:
+  diagnose:
+    runs-on: windows-2025
+    timeout-minutes: 20
+    steps:
+      - name: Check out diagnostic only
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Test existing signed EXE without rebuilding
+        shell: pwsh
+        run: ./diagnostics/test-exact-installer.ps1 -EvidenceDirectory "$env:RUNNER_TEMP/installer-evidence"
+      - name: Preserve diagnostic evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: exact-installer-diagnostic-${{ github.run_id }}
+          path: ${{ runner.temp }}/installer-evidence
+          if-no-files-found: error
+          retention-days: 30
